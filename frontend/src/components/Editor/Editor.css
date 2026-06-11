@@ -1,0 +1,182 @@
+/* ═══════════════════════════════════════════════════════════════
+   Editor Panel — Monaco editor with tab bar
+   ═══════════════════════════════════════════════════════════════ */
+
+.editor-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+/* ─── Tab Bar ────────────────────────────────────────────────── */
+
+.tab-bar {
+  display: flex;
+  align-items: center;
+  height: var(--tab-height);
+  background: var(--bg-secondary);
+  border-bottom: var(--border-default);
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-shrink: 0;
+}
+
+.tab-bar::-webkit-scrollbar {
+  height: 2px;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 var(--space-md);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-right: var(--border-subtle);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  min-width: 80px;
+  position: relative;
+  font-family: var(--font-sans);
+}
+
+.tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-glass-hover);
+}
+
+.tab.active {
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent-primary);
+}
+
+.tab-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab-modified {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  flex-shrink: 0;
+  animation: pulse 2s infinite;
+}
+
+.tab-close {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  font-size: 14px;
+  opacity: 0;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.tab:hover .tab-close,
+.tab.active .tab-close {
+  opacity: 1;
+}
+
+.tab-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+/* ─── Editor Area ────────────────────────────────────────────── */
+
+.editor-area {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ─── Welcome Screen ─────────────────────────────────────────── */
+
+.editor-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: var(--space-xl);
+  color: var(--text-tertiary);
+  animation: fadeIn 400ms ease-out;
+}
+
+.editor-welcome-logo {
+  font-size: 64px;
+  opacity: 0.15;
+  margin-bottom: var(--space-md);
+}
+
+.editor-welcome h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: 300;
+  color: var(--text-secondary);
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.editor-welcome p {
+  font-size: var(--font-size-sm);
+  max-width: 400px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.editor-welcome-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+
+.editor-welcome-shortcut {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.editor-welcome-shortcut kbd {
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  background: var(--bg-elevated);
+  border: var(--border-default);
+  border-radius: 4px;
+  color: var(--text-primary);
+}

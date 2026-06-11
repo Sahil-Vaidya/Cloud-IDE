@@ -1,0 +1,109 @@
+.settings-modal {
+  max-width: 480px;
+  border-radius: var(--border-radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: var(--border-subtle);
+  padding-bottom: var(--space-md);
+}
+
+.settings-header h2 {
+  margin: 0;
+  font-size: var(--font-size-xl);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xl);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: var(--border-radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.close-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-glass-hover);
+}
+
+.settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.setting-group label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.setting-input {
+  background: var(--bg-primary);
+  border: var(--border-default);
+  color: var(--text-primary);
+  padding: var(--space-sm);
+  border-radius: var(--border-radius-md);
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+
+.setting-input:focus {
+  border-color: var(--accent-primary);
+}
+
+.setting-description {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.checkbox-group {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent-primary);
+  cursor: pointer;
+}
+
+.checkbox-row label {
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-footer {
+  display: flex;
+  justify-content: flex-end;
+  border-top: var(--border-subtle);
+  padding-top: var(--space-md);
+}

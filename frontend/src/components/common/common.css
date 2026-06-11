@@ -1,0 +1,279 @@
+/* ═══════════════════════════════════════════════════════════════
+   Common — Toolbar and StatusBar
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Toolbar ────────────────────────────────────────────────── */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--toolbar-height);
+  min-height: var(--toolbar-height);
+  padding: 0 var(--space-md);
+  background: var(--bg-secondary);
+  border-bottom: var(--border-default);
+  flex-shrink: 0;
+  z-index: 150;
+  -webkit-app-region: drag;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  -webkit-app-region: no-drag;
+}
+
+/* File Dropdown Menu styling */
+.file-menu-container {
+  position: relative;
+  display: inline-block;
+}
+
+.file-menu-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+}
+
+.file-menu-btn:hover {
+  background: var(--bg-glass-hover);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.file-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  min-width: 160px;
+  background: var(--bg-elevated);
+  border: var(--border-default);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-xs) 0;
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-dropdown);
+  display: flex;
+  flex-direction: column;
+}
+
+.file-menu-item {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  transition: background var(--transition-fast);
+}
+
+.file-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.file-menu-separator {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: var(--space-xs) 0;
+}
+
+.toolbar-project-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  padding-left: var(--space-md);
+}
+
+.toolbar-open-project-btn {
+  background: var(--gradient-accent);
+  color: var(--text-inverse);
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+}
+
+.toolbar-open-project-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-0.5px);
+  box-shadow: var(--shadow-glow);
+}
+
+
+.toolbar-project-name .project-badge {
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 99px;
+  background: rgba(88, 166, 255, 0.15);
+  color: var(--accent-primary);
+}
+
+.toolbar-center {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  -webkit-app-region: no-drag;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  -webkit-app-region: no-drag;
+}
+
+.toolbar-run-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  border: var(--border-default);
+  padding: 2px;
+}
+
+.toolbar-run-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  font-family: var(--font-sans);
+  border: none;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toolbar-run-btn.run {
+  background: rgba(63, 185, 80, 0.15);
+  color: var(--accent-success);
+}
+
+.toolbar-run-btn.run:hover {
+  background: rgba(63, 185, 80, 0.25);
+}
+
+.toolbar-run-btn.stop {
+  background: rgba(248, 81, 73, 0.15);
+  color: var(--accent-danger);
+}
+
+.toolbar-run-btn.stop:hover {
+  background: rgba(248, 81, 73, 0.25);
+}
+
+.toolbar-run-btn.restart {
+  background: rgba(210, 153, 34, 0.15);
+  color: var(--accent-warning);
+}
+
+.toolbar-run-btn.restart:hover {
+  background: rgba(210, 153, 34, 0.25);
+}
+
+.toolbar-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.toolbar-status-dot.running {
+  background: var(--accent-success);
+  box-shadow: 0 0 8px var(--accent-success);
+  animation: pulse 2s infinite;
+}
+
+.toolbar-status-dot.stopped {
+  background: var(--text-tertiary);
+}
+
+/* ─── Status Bar ─────────────────────────────────────────────── */
+
+.statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--statusbar-height);
+  min-height: var(--statusbar-height);
+  padding: 0 var(--space-md);
+  background: var(--bg-secondary);
+  border-top: var(--border-default);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  z-index: 5;
+}
+
+.statusbar-left,
+.statusbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.statusbar-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  cursor: default;
+  transition: color var(--transition-fast);
+}
+
+.statusbar-item:hover {
+  color: var(--text-primary);
+}
+
+.statusbar-item .status-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.statusbar-item .status-indicator.active {
+  background: var(--accent-success);
+  box-shadow: 0 0 4px var(--accent-success);
+}
+
+.statusbar-item .status-indicator.inactive {
+  background: var(--text-tertiary);
+}
+
+.statusbar-powered {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 600;
+}

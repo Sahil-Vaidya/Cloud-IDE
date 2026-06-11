@@ -1,0 +1,72 @@
+/* ═══════════════════════════════════════════════════════════════
+   Log Viewer — Live log streaming with ANSI color support
+   ═══════════════════════════════════════════════════════════════ */
+
+.log-viewer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.log-viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-md);
+  height: 32px;
+  min-height: 32px;
+  background: var(--bg-secondary);
+  border-bottom: var(--border-default);
+  flex-shrink: 0;
+}
+
+.log-viewer-header h4 {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.log-viewer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+}
+
+.log-line {
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--text-secondary);
+  padding: 1px 0;
+}
+
+.log-line:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.log-line .log-timestamp {
+  color: var(--text-tertiary);
+  margin-right: var(--space-sm);
+  user-select: none;
+}
+
+/* ANSI color classes */
+.log-error { color: var(--accent-danger); }
+.log-warning { color: var(--accent-warning); }
+.log-success { color: var(--accent-success); }
+.log-info { color: var(--accent-info); }
+
+.log-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+}

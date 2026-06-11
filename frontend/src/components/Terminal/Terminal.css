@@ -1,0 +1,92 @@
+/* ═══════════════════════════════════════════════════════════════
+   Terminal Panel — xterm.js based interactive terminal
+   ═══════════════════════════════════════════════════════════════ */
+
+.terminal-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-md);
+  height: 32px;
+  min-height: 32px;
+  background: var(--bg-secondary);
+  border-bottom: var(--border-default);
+  flex-shrink: 0;
+}
+
+.terminal-header-tabs {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.terminal-header-tab {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: var(--font-sans);
+}
+
+.terminal-header-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-glass-hover);
+}
+
+.terminal-header-tab.active {
+  color: var(--accent-primary);
+  background: rgba(88, 166, 255, 0.1);
+}
+
+.terminal-header-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.terminal-header-actions button {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--border-radius-sm);
+  transition: all var(--transition-fast);
+  font-size: 14px;
+}
+
+.terminal-header-actions button:hover {
+  color: var(--text-primary);
+  background: var(--bg-glass-hover);
+}
+
+.terminal-container {
+  flex: 1;
+  padding: var(--space-xs);
+  overflow: hidden;
+}
+
+.terminal-container .xterm {
+  height: 100%;
+}
+
+.terminal-container .xterm-viewport {
+  overflow-y: auto !important;
+}
