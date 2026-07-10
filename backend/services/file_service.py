@@ -17,39 +17,55 @@ WORKSPACES_DIR.mkdir(parents=True, exist_ok=True)
 
 
 
-def get_project_path(project_name: str) -> Path:
-    """Get the absolute path to a project workspace."""
+def get_project_path(project_name: str, user_id: int) -> Path:
+    """Get the absolute path to a project workspace, scoped by user_id."""
+    # Decode hex-encoded absolute paths if they start with hex_
+    name = project_name
+    if project_name.startswith("hex_"):
+        try:
+            name = bytes.fromhex(project_name[4:]).decode("utf-8")
+        except Exception:
+            pass
+
     # If it looks like an absolute path, check if it exists and return it
-    if os.path.isabs(project_name) or (len(project_name) > 1 and project_name[1] == ":"):
-        path = Path(project_name).resolve()
+    if os.path.isabs(name) or (len(name) > 1 and name[1] == ":"):
+        path = Path(name).resolve()
         if not path.exists():
-            raise FileNotFoundError(f"Local path does not exist: {project_name}")
+            raise FileNotFoundError(f"Local path does not exist: {name}")
         return path
 
-    project_path = (WORKSPACES_DIR / project_name).resolve()
-    # Safety check: ensure the resolved path is within WORKSPACES_DIR
-    if not str(project_path).lower().startswith(str(WORKSPACES_DIR.resolve()).lower()):
+    user_dir = (WORKSPACES_DIR / f"user_{user_id}").resolve()
+    user_dir.mkdir(parents=True, exist_ok=True)
+
+    project_path = (user_dir / name).resolve()
+    # Safety check: ensure the resolved path is within user_dir
+    if not str(project_path).lower().startswith(str(user_dir).lower()):
         raise ValueError("Invalid project name: path traversal detected")
     return project_path
 
 
 
-def validate_path(project_name: str, relative_path: str) -> Path:
+def validate_path(project_name: str, relative_path: str, user_id: int) -> Path:
     """Validate and resolve a relative path within a project.
     Prevents directory traversal attacks.
     """
-    project_path = get_project_path(project_name)
-    full_path = (project_path / relative_path).resolve()
+    project_path = get_project_path(project_name, user_id)
+    # Strip any leading slashes (both forward and backward) to ensure relative resolution
+    clean_relative_path = relative_path.lstrip("/\\")
+    full_path = (project_path / clean_relative_path).resolve()
     if not str(full_path).lower().startswith(str(project_path).lower()):
         raise ValueError("Invalid path: directory traversal detected")
     return full_path
 
 
-def get_file_tree(project_name: str, relative_path: str = "") -> list:
+
+def get_file_tree(project_name: str, relative_path: str = "", user_id: int = None) -> list:
     """Build a recursive file tree structure for the project.
     Returns a list of dicts with name, path, type (file/directory), and children.
     """
-    project_path = get_project_path(project_name)
+    if user_id is None:
+        raise ValueError("user_id is required for get_file_tree")
+    project_path = get_project_path(project_name, user_id)
     target_path = project_path / relative_path if relative_path else project_path
 
     if not target_path.exists():
@@ -76,7 +92,7 @@ def get_file_tree(project_name: str, relative_path: str = "") -> list:
         }
 
         if entry.is_dir():
-            node["children"] = get_file_tree(project_name, rel)
+            node["children"] = get_file_tree(project_name, rel, user_id)
 
         if entry.is_file():
             node["size"] = entry.stat().st_size
@@ -87,9 +103,9 @@ def get_file_tree(project_name: str, relative_path: str = "") -> list:
     return tree
 
 
-def read_file(project_name: str, relative_path: str) -> str:
+def read_file(project_name: str, relative_path: str, user_id: int) -> str:
     """Read and return the contents of a file."""
-    file_path = validate_path(project_name, relative_path)
+    file_path = validate_path(project_name, relative_path, user_id)
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {relative_path}")
     if not file_path.is_file():
@@ -102,17 +118,19 @@ def read_file(project_name: str, relative_path: str) -> str:
         return f"[Binary file: {file_path.stat().st_size} bytes]"
 
 
-def write_file(project_name: str, relative_path: str, content: str) -> dict:
+def write_file(project_name: str, relative_path: str, content: str, user_id: int) -> dict:
     """Write content to a file. Creates parent directories if needed."""
-    file_path = validate_path(project_name, relative_path)
+    file_path = validate_path(project_name, relative_path, user_id)
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text(content, encoding="utf-8")
     return {"path": relative_path, "size": file_path.stat().st_size}
 
 
-def create_item(project_name: str, relative_path: str, item_type: str = "file") -> dict:
+def create_item(project_name: str, relative_path: str, item_type: str = "file", user_id: int = None) -> dict:
     """Create a new file or directory."""
-    item_path = validate_path(project_name, relative_path)
+    if user_id is None:
+        raise ValueError("user_id is required for create_item")
+    item_path = validate_path(project_name, relative_path, user_id)
 
     if item_path.exists():
         raise FileExistsError(f"Already exists: {relative_path}")
@@ -126,25 +144,54 @@ def create_item(project_name: str, relative_path: str, item_type: str = "file") 
     return {"path": relative_path, "type": item_type}
 
 
-def delete_item(project_name: str, relative_path: str) -> dict:
+def delete_item(project_name: str, relative_path: str, user_id: int) -> dict:
     """Delete a file or directory."""
-    item_path = validate_path(project_name, relative_path)
+    item_path = validate_path(project_name, relative_path, user_id)
 
     if not item_path.exists():
         raise FileNotFoundError(f"Not found: {relative_path}")
 
     if item_path.is_dir():
-        shutil.rmtree(item_path)
+        try:
+            shutil.rmtree(item_path)
+        except PermissionError:
+            # Force delete read-only files/folders
+            import stat
+            for root, dirs, files in os.walk(item_path, topdown=False):
+                for name in files:
+                    filepath = os.path.join(root, name)
+                    try:
+                        os.chmod(filepath, stat.S_IWRITE)
+                        os.unlink(filepath)
+                    except Exception:
+                        pass
+                for name in dirs:
+                    dirpath = os.path.join(root, name)
+                    try:
+                        os.chmod(dirpath, stat.S_IWRITE)
+                        os.rmdir(dirpath)
+                    except Exception:
+                        pass
+            shutil.rmtree(item_path)
     else:
-        item_path.unlink()
+        try:
+            item_path.unlink()
+        except PermissionError:
+            import stat
+            try:
+                os.chmod(item_path, stat.S_IWRITE)
+                item_path.unlink()
+            except Exception as e:
+                raise PermissionError(f"Permission denied: {relative_path}. File might be locked or read-only. Details: {e}")
 
     return {"path": relative_path, "deleted": True}
 
 
-def rename_item(project_name: str, old_path: str, new_path: str) -> dict:
+
+def rename_item(project_name: str, old_path: str, new_path: str, user_id: int) -> dict:
     """Rename or move a file/directory."""
-    old = validate_path(project_name, old_path)
-    new = validate_path(project_name, new_path)
+    old = validate_path(project_name, old_path, user_id)
+    new = validate_path(project_name, new_path, user_id)
 
     if not old.exists():
         raise FileNotFoundError(f"Not found: {old_path}")

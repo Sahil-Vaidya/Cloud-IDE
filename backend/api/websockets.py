@@ -10,10 +10,11 @@ import os
 import json
 from typing import Dict
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 
 from services.file_service import get_project_path
 from services import process_service
+from api.auth import get_user_from_token
 
 router = APIRouter(tags=["websockets"])
 
@@ -28,9 +29,24 @@ async def terminal_websocket(websocket: WebSocket, project: str):
     """
     await websocket.accept()
 
-    project_path = get_project_path(project)
+    # Authenticate via query token
+    token = websocket.query_params.get("token")
+    user = get_user_from_token(token)
+    if not user:
+        await websocket.send_json({"type": "error", "data": "Unauthorized connection. Session expired.\r\n"})
+        await websocket.close(code=1008)
+        return
+
+    user_id = user["id"]
+    try:
+        project_path = get_project_path(project, user_id)
+    except Exception as e:
+        await websocket.send_json({"type": "error", "data": f"Error resolving project: {str(e)}\r\n"})
+        await websocket.close()
+        return
+
     if not project_path.exists():
-        await websocket.send_json({"type": "error", "data": f"Project not found: {project}"})
+        await websocket.send_json({"type": "error", "data": f"Project not found: {project}\r\n"})
         await websocket.close()
         return
 
@@ -60,7 +76,7 @@ async def terminal_websocket(websocket: WebSocket, project: str):
             bufsize=0,
         )
 
-        session_id = f"{project}_{id(websocket)}"
+        session_id = f"{user_id}_{project}_{id(websocket)}"
         _terminal_sessions[session_id] = process
 
         await websocket.send_json({
@@ -140,8 +156,17 @@ async def logs_websocket(websocket: WebSocket, project: str):
     """
     await websocket.accept()
 
+    # Authenticate via query token
+    token = websocket.query_params.get("token")
+    user = get_user_from_token(token)
+    if not user:
+        await websocket.close(code=1008)
+        return
+
+    user_id = user["id"]
+
     # Send recent logs first
-    recent_logs = process_service.get_recent_logs(project, 200)
+    recent_logs = process_service.get_recent_logs(project, 200, user_id=user_id)
     for line in recent_logs:
         await websocket.send_json({"type": "log", "data": line})
 
@@ -154,7 +179,7 @@ async def logs_websocket(websocket: WebSocket, project: str):
         except asyncio.QueueFull:
             pass
 
-    process_service.subscribe_logs(project, on_log)
+    process_service.subscribe_logs(project, on_log, user_id=user_id)
 
     try:
         # Task to push queued logs to WebSocket
@@ -184,4 +209,4 @@ async def logs_websocket(websocket: WebSocket, project: str):
             push_task.cancel()
 
     finally:
-        process_service.unsubscribe_logs(project, on_log)
+        process_service.unsubscribe_logs(project, on_log, user_id=user_id)

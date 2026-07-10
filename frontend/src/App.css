@@ -47,13 +47,13 @@
 /* ─── Right Panel ────────────────────────────────────────────── */
 
 .app-right-panel {
-  width: 420px;
-  min-width: 300px;
+  min-width: 250px;
   border-left: var(--border-default);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   animation: fadeIn 200ms ease-out;
+  flex-shrink: 0;
 }
 
 .app-right-panel.hidden {
@@ -100,21 +100,23 @@
 /* ─── Resize Handles ─────────────────────────────────────────── */
 
 .resize-handle {
-  height: 4px;
+  height: 5px;
   cursor: row-resize;
   background: transparent;
   position: relative;
   flex-shrink: 0;
   z-index: 10;
+  transition: background 150ms ease;
 }
 
 .resize-handle-vertical {
-  width: 4px;
+  width: 5px;
   cursor: col-resize;
   background: transparent;
   position: relative;
   flex-shrink: 0;
   z-index: 10;
+  transition: background 150ms ease;
 }
 
 .resize-handle:hover,
@@ -154,7 +156,7 @@
 
 .resize-handle:hover::after,
 .resize-handle-vertical:hover::after {
-  opacity: 0.5;
+  opacity: 0.6;
 }
 
 
@@ -234,6 +236,7 @@
     bottom: var(--statusbar-height);
     box-shadow: var(--shadow-lg);
     background: var(--bg-primary);
+    width: min(420px, 90vw) !important;
   }
 }
 
@@ -311,5 +314,20 @@
   30% { width: 40%; }
   70% { width: 85%; }
   100% { width: 100%; }
+}
+
+/* ─── Drag & Resize Helper overrides ─────────────────────────── */
+
+body.resizing iframe {
+  pointer-events: none !important;
+}
+
+body.resizing .monaco-editor {
+  pointer-events: none !important;
+}
+
+.project-manager-header,
+.settings-header {
+  cursor: move !important;
 }
 

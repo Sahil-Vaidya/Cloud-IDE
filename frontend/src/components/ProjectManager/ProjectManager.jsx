@@ -24,11 +24,51 @@ export default function ProjectManager({ isOpen, onClose, onProjectOpen, onOpenL
   // Reference for directory selector input
   const fileInputRef = useRef(null);
 
+  // Draggable Modal state
+  const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+
+  const handleDragStart = (e) => {
+    if (e.button !== 0) return; // only left click
+    // Don't drag if clicking buttons, inputs, or close button
+    if (e.target.closest('.project-manager-close') || e.target.closest('input') || e.target.closest('button') || e.target.closest('select')) {
+      return;
+    }
+    setIsDragging(true);
+    dragStart.current = {
+      x: e.clientX - dragPos.x,
+      y: e.clientY - dragPos.y,
+    };
+    document.body.style.userSelect = 'none';
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMouseMove = (e) => {
+      setDragPos({
+        x: e.clientX - dragStart.current.x,
+        y: e.clientY - dragStart.current.y,
+      });
+    };
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      document.body.style.userSelect = '';
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
+
   // Load projects
   useEffect(() => {
     if (isOpen) {
       loadProjects();
       setTab(initialTab || 'open');
+      setDragPos({ x: 0, y: 0 });
     }
   }, [isOpen, initialTab]);
 
@@ -60,8 +100,13 @@ export default function ProjectManager({ isOpen, onClose, onProjectOpen, onOpenL
   }, [projectName, selectedTemplate, onProjectOpen, onClose]);
 
   const handleClone = useCallback(async () => {
-    if (!cloneName.trim() || !cloneUrl.trim()) {
-      setError('Please fill in all fields');
+    if (!cloneUrl.trim()) {
+      window.alert('Please enter a Git repository link to clone.');
+      setError('Please enter a Git repository link to clone.');
+      return;
+    }
+    if (!cloneName.trim()) {
+      setError('Please enter a project name.');
       return;
     }
     setLoading(true);
@@ -77,6 +122,7 @@ export default function ProjectManager({ isOpen, onClose, onProjectOpen, onOpenL
     }
     setLoading(false);
   }, [cloneName, cloneUrl, onProjectOpen, onClose]);
+
 
   const handleOpenLocal = useCallback(() => {
     if (!localPath.trim()) {
@@ -155,8 +201,12 @@ export default function ProjectManager({ isOpen, onClose, onProjectOpen, onOpenL
 
   return (
     <div className="project-manager-overlay" onClick={onClose}>
-      <div className="project-manager" onClick={(e) => e.stopPropagation()}>
-        <div className="project-manager-header">
+      <div 
+        className="project-manager" 
+        onClick={(e) => e.stopPropagation()}
+        style={{ transform: `translate(${dragPos.x}px, ${dragPos.y}px)` }}
+      >
+        <div className="project-manager-header" onMouseDown={handleDragStart}>
           <h2>⚡ Project Manager</h2>
           <button className="project-manager-close" onClick={onClose}>
             <VscClose />
@@ -235,23 +285,26 @@ export default function ProjectManager({ isOpen, onClose, onProjectOpen, onOpenL
           {/* Open Local Folder Tab */}
           {tab === 'local' && (
             <div className="pm-form">
-              <div className="pm-form-group">
-                <label>Select & Upload Directory</label>
-                
-                {/* Hidden input for webkitdirectory */}
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  webkitdirectory="true"
-                  directory="true"
-                  multiple
-                  style={{ display: 'none' }}
-                  onChange={handleDirectoryUpload}
-                />
+              <div className="pm-form-group" style={{ textAlign: 'center', padding: '10px 0' }}>
+                <label style={{ fontSize: '14px', marginBottom: '12px', display: 'block' }}>Open Local Directory directly, just like in VS Code</label>
                 
                 <button
                   className="btn btn-primary"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={async () => {
+                    setError('');
+                    setLoading(true);
+                    try {
+                      const res = await projectAPI.selectLocal();
+                      if (res.status === 'selected' && res.path) {
+                        onOpenLocalProject(res.path);
+                        onClose();
+                      }
+                    } catch (err) {
+                      setError('Failed to open native directory dialog. Please enter the path manually.');
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
                   type="button"
                   style={{
                     display: 'flex',
@@ -259,16 +312,17 @@ export default function ProjectManager({ isOpen, onClose, onProjectOpen, onOpenL
                     justifyContent: 'center',
                     gap: '8px',
                     padding: '16px',
-                    fontSize: '14px',
+                    fontSize: '15px',
+                    fontWeight: '600',
                     width: '100%',
                     marginTop: '8px'
                   }}
                   disabled={loading}
                 >
-                  {loading ? 'Uploading Folder...' : '📂 Choose Local Folder from Device'}
+                  {loading ? 'Opening Folder...' : '📂 Choose Local Folder / Project'}
                 </button>
                 <span className="setting-description" style={{ marginTop: '8px', textAlign: 'center', display: 'block' }}>
-                  Clicking this will open your device's native folder explorer and ask for directory permission.
+                  Selects a directory on your local machine and opens it directly without uploading.
                 </span>
               </div>
 
@@ -287,39 +341,17 @@ export default function ProjectManager({ isOpen, onClose, onProjectOpen, onOpenL
                     disabled={loading}
                   />
                   <button
-                    className="btn"
-                    onClick={async () => {
-                      setError('');
-                      try {
-                        const res = await projectAPI.selectLocal();
-                        if (res.status === 'selected' && res.path) {
-                          setLocalPath(res.path);
-                        }
-                      } catch (err) {
-                        setError('Failed to open native dialog. Please enter the path manually.');
-                      }
-                    }}
-                    type="button"
-                    style={{ padding: '0 16px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    disabled={loading}
+                    className="btn btn-primary"
+                    onClick={handleOpenLocal}
+                    disabled={loading || !localPath.trim()}
+                    style={{ padding: '0 20px' }}
                   >
-                    📁 Browse PC
+                    Open Path
                   </button>
                 </div>
                 <span className="setting-description" style={{ marginTop: '4px' }}>
-                  Optionally, enter the path manually or click Browse PC to choose a directory on the server.
+                  Type the absolute directory path of the project folder to open it instantly.
                 </span>
-              </div>
-
-              <div className="pm-form-actions">
-                <button className="btn" onClick={onClose} disabled={loading}>Cancel</button>
-                <button
-                  className="btn btn-primary"
-                  onClick={handleOpenLocal}
-                  disabled={loading || !localPath.trim()}
-                >
-                  Open Path
-                </button>
               </div>
             </div>
           )}
@@ -397,7 +429,7 @@ export default function ProjectManager({ isOpen, onClose, onProjectOpen, onOpenL
                 <button
                   className="btn btn-primary"
                   onClick={handleClone}
-                  disabled={loading || !cloneName.trim() || !cloneUrl.trim()}
+                  disabled={loading}
                 >
                   {loading ? 'Cloning...' : 'Clone Repository'}
                 </button>

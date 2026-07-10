@@ -112,6 +112,63 @@
   color: var(--text-primary);
 }
 
+/* ─── Breadcrumb ─────────────────────────────────────────────── */
+
+.editor-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  padding: 0 12px;
+  background: var(--bg-secondary);
+  border-bottom: var(--border-default);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.breadcrumb-sep {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.breadcrumb-seg {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.breadcrumb-seg.last {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.breadcrumb-unsaved {
+  color: var(--accent-warning);
+  font-size: 10px;
+  margin-left: 4px;
+}
+
+.breadcrumb-save-btn {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+
+.breadcrumb-save-btn:hover {
+  color: var(--accent-primary);
+  background: rgba(88, 166, 255, 0.1);
+}
+
 /* ─── Editor Area ────────────────────────────────────────────── */
 
 .editor-area {
@@ -157,10 +214,14 @@
 }
 
 .editor-welcome-shortcuts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm) var(--space-xl);
   margin-top: var(--space-lg);
+  background: var(--bg-secondary);
+  border: var(--border-default);
+  border-radius: var(--border-radius-md);
+  padding: var(--space-lg);
 }
 
 .editor-welcome-shortcut {
@@ -171,8 +232,15 @@
   color: var(--text-secondary);
 }
 
+.shortcut-keys {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
 .editor-welcome-shortcut kbd {
-  padding: 2px 8px;
+  padding: 2px 6px;
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   background: var(--bg-elevated);

@@ -5,3 +5,8 @@ aiofiles==24.1.0
 python-multipart==0.0.9
 gitpython==3.1.43
 pywinpty==2.0.13; sys_platform == "win32"
+pydantic[email]>=2.0
+pymysql>=1.1.0
+email-validator>=2.0.0
+pg8000>=1.31.0
+pymongo>=4.17.0

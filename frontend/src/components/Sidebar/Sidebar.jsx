@@ -6,14 +6,18 @@ import {
   VscOpenPreview,
   VscSettingsGear,
   VscProject,
+  VscSearch,
+  VscSourceControl,
 } from 'react-icons/vsc';
 import './Sidebar.css';
 
 const SIDEBAR_ITEMS = [
-  { id: 'explorer', icon: VscFiles, label: 'Explorer' },
-  { id: 'terminal', icon: VscTerminal, label: 'Terminal' },
-  { id: 'database', icon: VscDatabase, label: 'Database' },
-  { id: 'preview', icon: VscOpenPreview, label: 'Preview' },
+  { id: 'explorer',  icon: VscFiles,         label: 'Explorer (Ctrl+Shift+E)' },
+  { id: 'search',    icon: VscSearch,        label: 'Search (Ctrl+Shift+F)' },
+  { id: 'git',       icon: VscSourceControl, label: 'Source Control (Ctrl+Shift+G)' },
+  { id: 'terminal',  icon: VscTerminal,      label: 'Terminal (Ctrl+`)' },
+  { id: 'database',  icon: VscDatabase,      label: 'Database' },
+  { id: 'preview',   icon: VscOpenPreview,   label: 'Preview' },
 ];
 
 export default function Sidebar({ activePanel, onPanelChange, onOpenProjectManager, onOpenSettings }) {
@@ -25,7 +29,7 @@ export default function Sidebar({ activePanel, onPanelChange, onOpenProjectManag
         <button
           className="sidebar-btn"
           onClick={onOpenProjectManager}
-          title="Projects"
+          title="Projects (Ctrl+Shift+P)"
           id="sidebar-btn-projects"
         >
           <VscProject />
@@ -41,7 +45,7 @@ export default function Sidebar({ activePanel, onPanelChange, onOpenProjectManag
             id={`sidebar-btn-${item.id}`}
           >
             <item.icon />
-            <span className="tooltip-text">{item.label}</span>
+            <span className="tooltip-text">{item.label.split(' (')[0]}</span>
           </button>
         ))}
       </div>
@@ -49,7 +53,7 @@ export default function Sidebar({ activePanel, onPanelChange, onOpenProjectManag
       <div className="sidebar-bottom">
         <button
           className="sidebar-btn"
-          title="Settings"
+          title="Settings (Ctrl+,)"
           id="sidebar-btn-settings"
           onClick={onOpenSettings}
         >
@@ -57,7 +61,6 @@ export default function Sidebar({ activePanel, onPanelChange, onOpenProjectManag
           <span className="tooltip-text">Settings</span>
         </button>
       </div>
-
     </aside>
   );
 }

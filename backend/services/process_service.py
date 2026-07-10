@@ -50,15 +50,15 @@ class ProcessInfo:
         }
 
 
-# Global registry of running processes per project
+# Global registry of running processes per project (keyed by f"{user_id}_{project_name}")
 _processes: Dict[str, ProcessInfo] = {}
 
 
-def detect_framework(project_name: str) -> dict:
+def detect_framework(project_name: str, user_id: int) -> dict:
     """Auto-detect the Python framework used in a project.
     Returns command and port information.
     """
-    project_path = get_project_path(project_name)
+    project_path = get_project_path(project_name, user_id)
 
     # Check for Django
     manage_py = project_path / "manage.py"
@@ -79,7 +79,7 @@ def detect_framework(project_name: str) -> dict:
                 app_file = _find_fastapi_app(project_path)
                 return {
                     "framework": "fastapi",
-                    "command": f'"{sys.executable}" -m uvicorn {app_file}:app --host 0.0.0.0 --port 8080 --reload',
+                    "command": f'"{sys.executable}" -m uvicorn {app_file}:app --host 0.0.0.0 --port 8080 --reload --reload-exclude "*.sqlite3" --reload-exclude "*.db" --reload-exclude "*.json"',
                     "port": 8080,
                 }
 
@@ -128,19 +128,23 @@ def _find_flask_app(project_path: Path) -> str:
     return "app"
 
 
-def start_process(project_name: str, command: Optional[str] = None, port: int = 8080) -> dict:
+def start_process(project_name: str, command: Optional[str] = None, port: int = 8080, user_id: int = None) -> dict:
     """Start a server process for a project."""
+    if user_id is None:
+        raise ValueError("user_id is required for start_process")
+    
+    key = f"{user_id}_{project_name}"
     # Stop any existing process for this project
-    if project_name in _processes and _processes[project_name].is_running:
-        stop_process(project_name)
+    if key in _processes and _processes[key].is_running:
+        stop_process(project_name, user_id)
 
-    project_path = get_project_path(project_name)
+    project_path = get_project_path(project_name, user_id)
 
     if not project_path.exists():
         raise FileNotFoundError(f"Project not found: {project_name}")
 
     if not command:
-        detected = detect_framework(project_name)
+        detected = detect_framework(project_name, user_id)
         command = detected["command"]
         port = detected.get("port", port)
 
@@ -169,7 +173,7 @@ def start_process(project_name: str, command: Optional[str] = None, port: int = 
     )
 
     proc_info = ProcessInfo(project_name, command, process, port)
-    _processes[project_name] = proc_info
+    _processes[key] = proc_info
 
     # Start log reader in background
     _start_log_reader(proc_info)
@@ -200,12 +204,13 @@ def _start_log_reader(proc_info: ProcessInfo):
     thread.start()
 
 
-def stop_process(project_name: str) -> dict:
+def stop_process(project_name: str, user_id: int) -> dict:
     """Stop a running process for a project."""
-    if project_name not in _processes:
+    key = f"{user_id}_{project_name}"
+    if key not in _processes:
         raise ValueError(f"No process found for project: {project_name}")
 
-    proc_info = _processes[project_name]
+    proc_info = _processes[key]
 
     if proc_info.is_running:
         if sys.platform == "win32":
@@ -224,22 +229,24 @@ def stop_process(project_name: str) -> dict:
     return {"project": project_name, "stopped": True}
 
 
-def restart_process(project_name: str) -> dict:
+def restart_process(project_name: str, user_id: int) -> dict:
     """Restart a project's process."""
     command = None
     port = 8080
+    key = f"{user_id}_{project_name}"
 
-    if project_name in _processes:
-        command = _processes[project_name].command
-        port = _processes[project_name].port
-        stop_process(project_name)
+    if key in _processes:
+        command = _processes[key].command
+        port = _processes[key].port
+        stop_process(project_name, user_id)
 
-    return start_process(project_name, command, port)
+    return start_process(project_name, command, port, user_id)
 
 
-def get_process_status(project_name: str) -> dict:
+def get_process_status(project_name: str, user_id: int) -> dict:
     """Get the status of a project's process."""
-    if project_name not in _processes:
+    key = f"{user_id}_{project_name}"
+    if key not in _processes:
         return {
             "project": project_name,
             "is_running": False,
@@ -248,28 +255,33 @@ def get_process_status(project_name: str) -> dict:
             "port": None,
         }
 
-    return _processes[project_name].to_dict()
+    return _processes[key].to_dict()
 
 
-def get_recent_logs(project_name: str, count: int = 100) -> list:
+def get_recent_logs(project_name: str, count: int = 100, user_id: int = None) -> list:
     """Get recent log lines for a project."""
-    if project_name not in _processes:
+    if user_id is None:
+        raise ValueError("user_id is required for get_recent_logs")
+    key = f"{user_id}_{project_name}"
+    if key not in _processes:
         return []
 
-    logs = list(_processes[project_name].logs)
+    logs = list(_processes[key].logs)
     return logs[-count:]
 
 
-def subscribe_logs(project_name: str, callback):
+def subscribe_logs(project_name: str, callback, user_id: int):
     """Subscribe to real-time log updates for a project."""
-    if project_name in _processes:
-        _processes[project_name].log_subscribers.append(callback)
+    key = f"{user_id}_{project_name}"
+    if key in _processes:
+        _processes[key].log_subscribers.append(callback)
 
 
-def unsubscribe_logs(project_name: str, callback):
+def unsubscribe_logs(project_name: str, callback, user_id: int):
     """Unsubscribe from log updates."""
-    if project_name in _processes:
+    key = f"{user_id}_{project_name}"
+    if key in _processes:
         try:
-            _processes[project_name].log_subscribers.remove(callback)
+            _processes[key].log_subscribers.remove(callback)
         except ValueError:
             pass

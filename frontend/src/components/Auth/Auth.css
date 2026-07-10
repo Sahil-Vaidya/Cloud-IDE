@@ -1,0 +1,197 @@
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #0B0813;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-primary, #F1EDFC);
+}
+
+.auth-bg-glow-1 {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(circle, rgba(138, 43, 226, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+.auth-bg-glow-2 {
+  position: absolute;
+  bottom: -10%;
+  right: -10%;
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(circle, rgba(0, 242, 254, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(18, 12, 34, 0.6);
+  border: 1px solid rgba(138, 43, 226, 0.25);
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(16px);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auth-logo {
+  font-size: 40px;
+  background: linear-gradient(135deg, #00F2FE, #8A2BE2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 12px;
+  animation: pulse-glow 3s infinite alternate;
+}
+
+.auth-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #FFF, #D8CEF7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.auth-subtitle {
+  font-size: 13px;
+  color: var(--text-tertiary, #A39BB8);
+  margin: 0 0 28px 0;
+  text-align: center;
+}
+
+.auth-error-badge {
+  width: 100%;
+  background: rgba(255, 90, 90, 0.1);
+  border: 1px solid rgba(255, 90, 90, 0.3);
+  color: #FF5A5A;
+  font-size: 12.5px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.auth-success-badge {
+  width: 100%;
+  background: rgba(46, 213, 115, 0.1);
+  border: 1px solid rgba(46, 213, 115, 0.3);
+  color: #2ED573;
+  font-size: 12.5px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.auth-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.auth-input-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 6px;
+}
+
+.auth-input-group label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, #C8C2E0);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.auth-input-group input {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(138, 43, 226, 0.2);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #FFF;
+  outline: none;
+  transition: all 0.25s ease;
+}
+
+.auth-input-group input:focus {
+  border-color: #00F2FE;
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.auth-submit-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #8A2BE2, #6A0DAD);
+  border: none;
+  color: #FFF;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 15px rgba(138, 43, 226, 0.3);
+}
+
+.auth-submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(138, 43, 226, 0.45);
+  background: linear-gradient(135deg, #9C42F5, #7B1FA2);
+}
+
+.auth-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-toggle {
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--text-tertiary, #A39BB8);
+}
+
+.auth-toggle-link {
+  background: none;
+  border: none;
+  color: #00F2FE;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+  font-size: 13px;
+  transition: color 0.2s;
+}
+
+.auth-toggle-link:hover {
+  color: #8A2BE2;
+  text-decoration: underline;
+}
+
+@keyframes pulse-glow {
+  0% {
+    text-shadow: 0 0 10px rgba(0, 242, 254, 0.3), 0 0 20px rgba(138, 43, 226, 0.2);
+  }
+  100% {
+    text-shadow: 0 0 15px rgba(0, 242, 254, 0.5), 0 0 30px rgba(138, 43, 226, 0.4);
+  }
+}

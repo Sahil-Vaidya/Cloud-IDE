@@ -10,13 +10,31 @@ import ProjectManager from './components/ProjectManager/ProjectManager';
 import SettingsModal from './components/Settings/SettingsModal';
 import Toolbar from './components/common/Toolbar';
 import StatusBar from './components/common/StatusBar';
+import Auth from './components/Auth/Auth';
+import SearchPanel from './components/Search/SearchPanel';
+import GitPanel from './components/GitPanel/GitPanel';
+import { ToastProvider, useToast } from './components/common/Toast';
 import { fileAPI, processAPI } from './utils/api';
 import { VscSplitHorizontal, VscSplitVertical } from 'react-icons/vsc';
 import './App.css';
 
 export default function App() {
+  return (
+    <ToastProvider>
+      <MainApp />
+    </ToastProvider>
+  );
+}
+
+function MainApp() {
+  const toast = useToast();
   // ─── State ──────────────────────────────────────────────────
   const [appInitializing, setAppInitializing] = useState(true);
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('cloud_ide_user');
+    const savedToken = localStorage.getItem('cloud_ide_token');
+    return savedUser && savedToken ? JSON.parse(savedUser) : null;
+  });
   const [project, setProject] = useState('');
   const [fileTree, setFileTree] = useState([]);
   const [openFiles, setOpenFiles] = useState([]);
@@ -29,11 +47,23 @@ export default function App() {
   const [initialPMTab, setInitialPMTab] = useState('open');
   const [showExplorer, setShowExplorer] = useState(true);
   const [processStatus, setProcessStatus] = useState(null);
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('cloud_ide_token');
+    localStorage.removeItem('cloud_ide_user');
+    setUser(null);
+    setProject('');
+    setFileTree([]);
+    setOpenFiles([]);
+    setActiveFile(null);
+  }, []);
   
   // Panel Layouts
   const [terminalPosition, setTerminalPosition] = useState('bottom'); // 'bottom' | 'right'
   const [bottomPanelHeight, setBottomPanelHeight] = useState(280);
   const [rightTerminalWidth, setRightTerminalWidth] = useState(450);
+  const [explorerWidth, setExplorerWidth] = useState(250);
+  const [rightPanelWidth, setRightPanelWidth] = useState(420);
 
   // Splash Screen Timer
   useEffect(() => {
@@ -43,12 +73,47 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Keyboard shortcut listener for Ctrl+B (Toggle Sidebar)
+  // Keyboard shortcut listener
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Toggle sidebar explorer
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
         e.preventDefault();
         setShowExplorer((prev) => !prev);
+      }
+      // Search: Ctrl+Shift+F
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setActivePanel('search');
+        setShowExplorer(true);
+      }
+      // Source Control: Ctrl+Shift+G
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'g') {
+        e.preventDefault();
+        setActivePanel('git');
+        setShowExplorer(true);
+      }
+      // Explorer: Ctrl+Shift+E
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        setActivePanel('explorer');
+        setShowExplorer(true);
+      }
+      // Terminal: Ctrl+` (backtick)
+      if ((e.ctrlKey || e.metaKey) && e.key === '`') {
+        e.preventDefault();
+        setShowBottomPanel((prev) => !prev);
+      }
+      // Settings: Ctrl+,
+      if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+        e.preventDefault();
+        setShowSettings(true);
+      }
+      // Project Manager: Ctrl+Shift+P
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        setInitialPMTab('open');
+        setShowProjectManager(true);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -62,8 +127,17 @@ export default function App() {
     return saved ? JSON.parse(saved) : {
       theme: 'vs-dark',
       fontSize: 14,
+      fontFamily: "'JetBrains Mono', monospace",
       minimap: true,
       wordWrap: 'on',
+      tabSize: 4,
+      keybindings: 'default',
+      bracketPairs: true,
+      lineNumbers: true,
+      autoSave: true,
+      autoSaveDelay: 2000,
+      terminalFontSize: 13,
+      terminalCursorBlink: true,
     };
   });
 
@@ -81,6 +155,14 @@ export default function App() {
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
 
+  const resizingExplorerRef = useRef(false);
+  const startXExplorerRef = useRef(0);
+  const startWidthExplorerRef = useRef(0);
+
+  const resizingRightPanelRef = useRef(false);
+  const startXRightPanelRef = useRef(0);
+  const startWidthRightPanelRef = useRef(0);
+
   // ─── Load File Tree ─────────────────────────────────────────
   const loadFileTree = useCallback(async () => {
     if (!project) return;
@@ -89,8 +171,11 @@ export default function App() {
       setFileTree(data.tree || []);
     } catch (err) {
       console.error('Failed to load file tree:', err);
+      toast.error(`Failed to load project: ${err.message}`);
+      setProject('');
+      setShowProjectManager(true);
     }
-  }, [project]);
+  }, [project, toast]);
 
   useEffect(() => {
     if (project) {
@@ -101,6 +186,8 @@ export default function App() {
       // Auto open explorer panel
       setActivePanel('explorer');
       setShowExplorer(true);
+      // Close right panel to avoid showing stale DB/preview from old project
+      setShowRightPanel(false);
     }
   }, [project, loadFileTree]);
 
@@ -158,6 +245,32 @@ export default function App() {
     setActiveFile(file);
   }, []);
 
+  const handleOpenFileAtLine = useCallback(
+    async (filePath, line) => {
+      // Find or read file
+      const existing = openFiles.find((f) => f.path === filePath);
+      if (existing) {
+        setActiveFile({ ...existing, line });
+        return;
+      }
+      try {
+        const data = await fileAPI.readFile(project, filePath);
+        const fileData = {
+          path: filePath,
+          name: filePath.split('/').pop(),
+          content: data.content,
+          extension: data.extension,
+          line,
+        };
+        setOpenFiles((prev) => [...prev, fileData]);
+        setActiveFile(fileData);
+      } catch (err) {
+        console.error('Failed to open file from search:', err);
+      }
+    },
+    [project, openFiles]
+  );
+
   const handleCloseFile = useCallback(
     (file) => {
       setOpenFiles((prev) => {
@@ -173,6 +286,103 @@ export default function App() {
     },
     [activeFile]
   );
+
+  const handleFileDelete = useCallback(
+    (deletedPath, isDir) => {
+      setOpenFiles((prev) => {
+        let next;
+        if (isDir) {
+          const folderPrefix = deletedPath.endsWith('/') ? deletedPath : `${deletedPath}/`;
+          next = prev.filter((f) => f.path !== deletedPath && !f.path.startsWith(folderPrefix));
+        } else {
+          next = prev.filter((f) => f.path !== deletedPath);
+        }
+
+        // If active file was deleted, switch to the last open file or null
+        if (activeFile && (activeFile.path === deletedPath || (isDir && activeFile.path.startsWith(deletedPath + '/')))) {
+          const remainingActive = next.length > 0 ? next[next.length - 1] : null;
+          setActiveFile(remainingActive);
+        }
+        return next;
+      });
+    },
+    [activeFile]
+  );
+
+  const handleFileRename = useCallback(
+    (oldPath, newPath, isDir) => {
+      setOpenFiles((prev) => {
+        const next = prev.map((file) => {
+          if (isDir) {
+            const folderPrefix = oldPath.endsWith('/') ? oldPath : `${oldPath}/`;
+            if (file.path === oldPath) {
+              return {
+                ...file,
+                path: newPath,
+                name: newPath.split('/').pop(),
+              };
+            } else if (file.path.startsWith(folderPrefix)) {
+              const rel = file.path.substring(folderPrefix.length);
+              const newFilePath = newPath.endsWith('/') ? `${newPath}${rel}` : `${newPath}/${rel}`;
+              return {
+                ...file,
+                path: newFilePath,
+              };
+            }
+          } else {
+            if (file.path === oldPath) {
+              return {
+                ...file,
+                path: newPath,
+                name: newPath.split('/').pop(),
+              };
+            }
+          }
+          return file;
+        });
+
+        // Update active file if it was renamed
+        if (activeFile) {
+          if (isDir) {
+            const folderPrefix = oldPath.endsWith('/') ? oldPath : `${oldPath}/`;
+            if (activeFile.path === oldPath) {
+              setActiveFile({
+                ...activeFile,
+                path: newPath,
+                name: newPath.split('/').pop(),
+              });
+            } else if (activeFile.path.startsWith(folderPrefix)) {
+              const rel = activeFile.path.substring(folderPrefix.length);
+              const newFilePath = newPath.endsWith('/') ? `${newPath}${rel}` : `${newPath}/${rel}`;
+              setActiveFile({
+                ...activeFile,
+                path: newFilePath,
+              });
+            }
+          } else {
+            if (activeFile.path === oldPath) {
+              setActiveFile({
+                ...activeFile,
+                path: newPath,
+                name: newPath.split('/').pop(),
+              });
+            }
+          }
+        }
+        return next;
+      });
+    },
+    [activeFile]
+  );
+
+  const handleReorderFiles = useCallback((fromIndex, toIndex) => {
+    setOpenFiles((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  }, []);
 
   // ─── Process Actions ───────────────────────────────────────
   const handleProcessAction = useCallback(
@@ -202,10 +412,17 @@ export default function App() {
   const handlePanelChange = useCallback(
     (panel) => {
       if (panel === 'explorer') {
-        if (activePanel === 'explorer') {
-          setShowExplorer((prev) => !prev);
+        if (activePanel === 'explorer' && showExplorer) {
+          setShowExplorer(false);
         } else {
           setActivePanel('explorer');
+          setShowExplorer(true);
+        }
+      } else if (panel === 'search' || panel === 'git') {
+        if (activePanel === panel && showExplorer) {
+          setShowExplorer(false);
+        } else {
+          setActivePanel(panel);
           setShowExplorer(true);
         }
       } else if (panel === 'terminal') {
@@ -223,7 +440,7 @@ export default function App() {
         setActivePanel(panel);
       }
     },
-    [activePanel, showRightPanel]
+    [activePanel, showRightPanel, showExplorer]
   );
 
   // ─── Resize Handles ────────────────────────────────────────
@@ -233,6 +450,7 @@ export default function App() {
     startHeightRef.current = bottomPanelHeight;
     document.body.style.cursor = 'row-resize';
     document.body.style.userSelect = 'none';
+    document.body.classList.add('resizing');
 
     const handleMouseMove = (e) => {
       if (!resizingRef.current) return;
@@ -245,6 +463,7 @@ export default function App() {
       resizingRef.current = false;
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      document.body.classList.remove('resizing');
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -259,6 +478,7 @@ export default function App() {
     startWidthRef.current = rightTerminalWidth;
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
+    document.body.classList.add('resizing');
 
     const handleMouseMove = (e) => {
       if (!resizingWidthRef.current) return;
@@ -271,6 +491,7 @@ export default function App() {
       resizingWidthRef.current = false;
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      document.body.classList.remove('resizing');
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -279,13 +500,79 @@ export default function App() {
     document.addEventListener('mouseup', handleMouseUp);
   }, [rightTerminalWidth]);
 
+  const handleExplorerResizeStart = useCallback((e) => {
+    resizingExplorerRef.current = true;
+    startXExplorerRef.current = e.clientX;
+    startWidthExplorerRef.current = explorerWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.body.classList.add('resizing');
+
+    const handleMouseMove = (e) => {
+      if (!resizingExplorerRef.current) return;
+      const delta = e.clientX - startXExplorerRef.current;
+      const newWidth = Math.max(180, Math.min(600, startWidthExplorerRef.current + delta));
+      setExplorerWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      resizingExplorerRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.body.classList.remove('resizing');
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [explorerWidth]);
+
+  const handleRightPanelResizeStart = useCallback((e) => {
+    resizingRightPanelRef.current = true;
+    startXRightPanelRef.current = e.clientX;
+    startWidthRightPanelRef.current = rightPanelWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.body.classList.add('resizing');
+
+    const handleMouseMove = (e) => {
+      if (!resizingRightPanelRef.current) return;
+      const delta = startXRightPanelRef.current - e.clientX;
+      const newWidth = Math.max(250, Math.min(900, startWidthRightPanelRef.current + delta));
+      setRightPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      resizingRightPanelRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.body.classList.remove('resizing');
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [rightPanelWidth]);
+
   // ─── Close Project ──────────────────────────────────────────
-  const handleCloseProject = () => {
+  const handleCloseProject = useCallback(async () => {
+    // Stop running process before closing
+    if (processStatus?.is_running && project) {
+      try {
+        await processAPI.stop(project);
+      } catch {
+        // Best-effort
+      }
+    }
     setProject('');
     setFileTree([]);
     setOpenFiles([]);
     setActiveFile(null);
-  };
+    setProcessStatus(null);
+    setShowRightPanel(false);
+  }, [project, processStatus]);
 
   // ─── Show right panel content ─────────────────────────────
   const rightPanelContent = activePanel === 'database' ? 'database' : activePanel === 'preview' ? 'preview' : null;
@@ -357,6 +644,18 @@ export default function App() {
     );
   }
 
+  if (!user) {
+    return (
+      <Auth
+        onLoginSuccess={(token, loggedInUser) => {
+          localStorage.setItem('cloud_ide_token', token);
+          localStorage.setItem('cloud_ide_user', JSON.stringify(loggedInUser));
+          setUser(loggedInUser);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="app">
       {/* Toolbar */}
@@ -375,6 +674,8 @@ export default function App() {
           setShowProjectManager(true);
         }}
         onToggleSidebar={() => setShowExplorer((prev) => !prev)}
+        userEmail={user?.email}
+        onLogout={handleLogout}
       />
 
       {/* Main Content */}
@@ -390,15 +691,38 @@ export default function App() {
           onOpenSettings={() => setShowSettings(true)}
         />
 
-        {/* File Explorer */}
-        {activePanel === 'explorer' && project && showExplorer && (
-          <FileExplorer
-            project={project}
-            fileTree={fileTree}
-            selectedFile={activeFile?.path}
-            onFileSelect={handleFileSelect}
-            onRefresh={loadFileTree}
-          />
+        {/* Sidebar panels */}
+        {project && showExplorer && (
+          <>
+            <div className="app-sidebar-panel-container" style={{ width: `${explorerWidth}px`, display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'hidden' }}>
+              {activePanel === 'explorer' && (
+                <FileExplorer
+                  project={project}
+                  fileTree={fileTree}
+                  selectedFile={activeFile?.path}
+                  onFileSelect={handleFileSelect}
+                  onRefresh={loadFileTree}
+                  onFileDelete={handleFileDelete}
+                  onFileRename={handleFileRename}
+                />
+              )}
+              {activePanel === 'search' && (
+                <SearchPanel
+                  project={project}
+                  onOpenFileAtLine={handleOpenFileAtLine}
+                />
+              )}
+              {activePanel === 'git' && (
+                <GitPanel
+                  project={project}
+                />
+              )}
+            </div>
+            <div
+              className="resize-handle-vertical"
+              onMouseDown={handleExplorerResizeStart}
+            />
+          </>
         )}
 
         {/* Content Area */}
@@ -414,6 +738,7 @@ export default function App() {
                 onCloseFile={handleCloseFile}
                 onFileSave={() => loadFileTree()}
                 settings={settings}
+                onReorderFiles={handleReorderFiles}
               />
             </div>
 
@@ -435,14 +760,20 @@ export default function App() {
 
             {/* Right Panel (Database / Preview) */}
             {showRightPanel && rightPanelContent && (
-              <div className="app-right-panel">
-                {rightPanelContent === 'database' && (
-                  <DatabaseViewer project={project} />
-                )}
-                {rightPanelContent === 'preview' && (
-                  <PreviewPanel project={project} processStatus={processStatus} />
-                )}
-              </div>
+              <>
+                <div
+                  className="resize-handle-vertical"
+                  onMouseDown={handleRightPanelResizeStart}
+                />
+                <div className="app-right-panel" style={{ width: `${rightPanelWidth}px` }}>
+                  {rightPanelContent === 'database' && (
+                    <DatabaseViewer project={project} />
+                  )}
+                  {rightPanelContent === 'preview' && (
+                    <PreviewPanel project={project} processStatus={processStatus} />
+                  )}
+                </div>
+              </>
             )}
           </div>
 
@@ -486,6 +817,7 @@ export default function App() {
           setShowProjectManager(false);
         }}
         currentProject={project}
+        initialTab={initialPMTab}
       />
 
       {/* Settings Modal */}

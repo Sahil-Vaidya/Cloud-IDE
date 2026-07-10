@@ -11,6 +11,8 @@ export default function Toolbar({
   onOpenSettings,
   onOpenLocalProject,
   onToggleSidebar,
+  userEmail,
+  onLogout,
 }) {
   const isRunning = processStatus?.is_running;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -40,6 +42,11 @@ export default function Toolbar({
           
           {isDropdownOpen && (
             <div className="file-menu-dropdown animate-scale-in">
+              {userEmail && (
+                <div className="file-menu-user" style={{ padding: '8px 12px', fontSize: '11px', color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.08)', userSelect: 'none', wordBreak: 'break-all' }}>
+                  👤 {userEmail}
+                </div>
+              )}
               <button
                 className="file-menu-item"
                 onClick={() => {
@@ -72,6 +79,17 @@ export default function Toolbar({
                   </button>
                 </>
               )}
+              <div className="file-menu-separator" />
+              <button
+                className="file-menu-item"
+                onClick={() => {
+                  setIsDropdownOpen(false);
+                  onLogout();
+                }}
+                style={{ color: '#FF5A5A' }}
+              >
+                🚪 Log Out
+              </button>
             </div>
           )}
         </div>
